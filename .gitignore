@@ -1,0 +1,5 @@
+# only the game goes online: index.html and README.md
+.DS_Store
+.claude/
+backups/
+renders/
