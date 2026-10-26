@@ -6,6 +6,12 @@ A 3D story game in the browser. Dr. Doge's robot dogs have taken over Neo-Paw Ci
 
 Double-click `index.html` to open it in a web browser. It needs an internet connection, because it loads the 3D engine (three.js) from the web. Your chapter progress is saved in the browser, so you can pick up where you left off.
 
+Online: **https://smokes-grote-avontuur.onrender.com**
+
+- It's a free Render static site, built from this repository's `main` branch.
+- Every push to `main` puts the new version online within about a minute.
+- Coins and progress are saved per website, so the online game keeps its own.
+
 ## Languages
 
 The game is in Dutch (*Smokes Grote Avontuur*), and English is kept alongside it.
