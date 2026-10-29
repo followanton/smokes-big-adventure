@@ -56,6 +56,50 @@
   body.shop #overlay { justify-content: flex-start; padding-left: 3vw; background: linear-gradient(90deg, rgba(8,6,24,.8), rgba(8,6,24,0) 65%); }
   body.shop #card { width: min(440px, 50vw); }
   @media (max-width: 700px) { body.shop #overlay { justify-content: center; align-items: flex-end; padding: 0 0 12px; background: none; } body.shop #card { width: calc(100vw - 24px); max-height: 52vh; } }
+  /* loading screen, shown until the city is built */
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #0d0b1e; color: #e6f7ff; transition: opacity .5s; z-index: 10; }
+  #loading h1 { margin: 0; font-size: 30px; color: #fff; text-shadow: 0 0 10px #ff3df5, 0 0 20px #ff3df5; text-align: center; }
+  #loadBar { width: min(360px, 70vw); height: 16px; border-radius: 8px; border: 2px solid #36e7ff; background: #12122a; overflow: hidden; box-shadow: 0 0 14px rgba(54,231,255,.4); }
+  #loadFill { height: 100%; width: 0; background: linear-gradient(90deg, #36e7ff, #ff3df5); transition: width .3s; }
+  #loadText { font-size: 15px; color: #bff8ff; }
+  /* touch controls: a stick on the left, buttons on the right (phones and tablets only) */
+  canvas { touch-action: none; }
+  #touch { display: none; }
+  body.touch #touch.on { display: block; }
+  #touch * { -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+  #stickZone { position: fixed; left: 0; bottom: 0; width: 45vw; height: 75vh; }
+  #stick { position: fixed; left: 100px; top: calc(100% - 110px); width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(54,231,255,.1); border: 2px solid rgba(54,231,255,.45); pointer-events: none; opacity: .6; }
+  #stick.on { opacity: 1; }
+  #knob { position: absolute; left: 32px; top: 32px; width: 56px; height: 56px; border-radius: 50%; background: rgba(54,231,255,.55); box-shadow: 0 0 12px rgba(54,231,255,.6); }
+  .tb { position: fixed; width: 66px; height: 66px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); background: rgba(18,18,42,.55); color: #fff; font: inherit; font-size: 26px; padding: 0; }
+  .tb:active { background: rgba(54,231,255,.55); }
+  .tb[data-act=slash] { right: 24px; bottom: 26px; width: 88px; height: 88px; font-size: 38px; border-color: #36e7ff; }
+  .tb[data-act=jump] { right: 128px; bottom: 22px; }
+  .tb[data-act=sprint] { right: 34px; bottom: 132px; }
+  .tb[data-act=pause] { left: 12px; top: 92px; width: 46px; height: 46px; font-size: 18px; }
+  .tb[data-act=map] { left: 66px; top: 92px; width: 46px; height: 46px; font-size: 18px; }
+  body.touch #mapHint { display: none; }
+  /* phones held upright: the HUD stacks on the left, the pause and map buttons go under the minimap */
+  @media (max-width: 600px) {
+    #hud { font-size: 14px; }
+    #staminaWrap { bottom: auto; top: 40px; left: 12px; transform: none; width: 130px; }
+    #staminaLabel { display: none; }
+    #objective { top: 60px; left: 12px; transform: none; white-space: normal; max-width: calc(100vw - 150px); font-size: 13px; }
+    #minimap { width: 110px; height: 110px; }
+    .tb[data-act=pause] { left: auto; right: 12px; top: 132px; }
+    .tb[data-act=map] { left: auto; right: 66px; top: 132px; }
+  }
+  /* small screens (phones turned sideways): smaller HUD so there is room to play */
+  @media (max-height: 500px) {
+    #hud { font-size: 14px; }
+    #objective { font-size: 13px; top: auto; bottom: 8px; }
+    #minimap { width: 96px; height: 96px; }
+    #mapHint { display: none; }
+    #staminaWrap { bottom: auto; top: 44px; width: 150px; }
+    #staminaLabel { bottom: auto; top: 58px; }
+    #card { padding: 14px 18px; }
+    #card h1 { font-size: 24px; }
+  }
   .shopRow { display: flex; align-items: center; gap: 10px; background: #1d1d3f; border-radius: 10px; padding: 6px 10px; margin: 5px 0; text-align: left; }
   .shopRow .ico { font-size: 26px; width: 34px; text-align: center; }
   .shopRow .nm { flex: 1; font-size: 15px; font-weight: bold; }
@@ -101,6 +145,15 @@
 <div id="staminaWrap"><div id="stamina"></div></div>
 <div id="toast"></div>
 <div id="flash"></div>
+<div id="touch">
+  <div id="stickZone"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <button class="tb" data-act="slash">🐾</button>
+  <button class="tb" data-act="jump">⤒</button>
+  <button class="tb" data-act="sprint">⚡</button>
+  <button class="tb" data-act="pause">⏸</button>
+  <button class="tb" data-act="map">🗺️</button>
+</div>
 <div id="overlay"><div id="card"></div></div>
 <div id="cine">
   <div class="cbar ctop"></div><div class="cbar cbot"></div>
@@ -110,6 +163,25 @@
   <button id="skipBtn" data-t="skip">Skip ⏭</button>
 </div>
 <div id="fade"></div>
+<div id="loading">
+  <h1>Smokes Grote Avontuur</h1>
+  <div id="loadBar"><div id="loadFill"></div></div>
+  <div id="loadText">Laden... 0%</div>
+</div>
+<script>
+// The loading bar creeps towards 95% while the 3D engine downloads and the city is built; the game sets 100% when it is ready.
+(() => {
+  const start = performance.now();
+  const tick = () => {
+    if (!document.getElementById('loading') || window.gameReady) return;
+    const s = (performance.now() - start) / 1000, p = Math.round(95 * (1 - Math.exp(-s / 3)));
+    document.getElementById('loadFill').style.width = p + '%';
+    document.getElementById('loadText').textContent = s > 25 ? 'Het duurt lang... Ververs de pagina of check je internet.' : `Laden... ${p}%`;
+    setTimeout(tick, 200);
+  };
+  tick();
+})();
+</script>
 
 <script type="module">
 import * as THREE from 'three';
@@ -161,6 +233,10 @@ const T = {
   settings: { en: '⚙️ Settings', nl: '⚙️ Opties' },
   back: { en: 'Back', nl: 'Terug' },
   mainMenu: { en: 'Main menu', nl: 'Hoofdmenu' },
+  touchControls: {
+    en: '🕹️ Left: slide your thumb to run<br>🐾 claw slash (knocks lasers away too) &nbsp; ⤒ jump &nbsp; ⚡ sprint<br>Swipe on the right to turn the camera<br>Robots can\'t climb crates. Hide in holo-bushes.<br>Fish snacks give you a heart. ⏸ pause, 🗺️ map.',
+    nl: '🕹️ Links: schuif met je duim om te rennen<br>🐾 klauwen (slaat ook lasers weg) &nbsp; ⤒ springen &nbsp; ⚡ sprinten<br>Veeg rechts om de camera te draaien<br>Robots kunnen niet op kratten. Verstop je in holobosjes.<br>Visjes geven een hartje. ⏸ pauze, 🗺️ kaart.',
+  },
   controls: {   // k holds the keys, already drawn as <kbd>
     en: k => `${k.forward}${k.left}${k.back}${k.right} or arrows: run &nbsp; ${k.sprint}: sprint<br>
     ${k.slash} or <b>click</b>: claw slash 🐾 &nbsp; ${k.jump}: jump<br>
@@ -240,6 +316,7 @@ const T = {
   notLasers: { en: ' (but not from lasers!)', nl: ' (niet voor lasers!)' },
   chasing: { en: n => `🐕 ${n} chasing!`, nl: n => `🐕 ${n} ${n === 1 ? 'jaagt' : 'jagen'}!` },
   hintSlash: { en: k => `Press ${k} or click to slash! 🐾`, nl: k => `${k} of klik = klauwen! 🐾` },
+  hintSlashTouch: { en: 'Tap 🐾 to slash!', nl: 'Tik op 🐾 = klauwen!' },
   hintKeys: { en: (s, j) => `${s} = sprint, ${j} = jump onto crates`, nl: (s, j) => `${s} = sprint, ${j} = spring op krat` },
   hintMap: { en: k => `Lost? Press ${k} for the big map 🗺️`, nl: k => `Verdwaald? ${k} = grote kaart 🗺️` },
   spotted: { en: name => `A ${name} spotted Smoke!`, nl: name => `Een ${name} ziet Smoke!` },
@@ -295,7 +372,7 @@ const CHAPTERS = [
   {
     title: { en: 'Neon Streets', nl: 'Neonstraten' }, goal: 'reach', goalText: { en: "Get to Bolt's hideout. Follow the blue beam!", nl: 'Volg de blauwe straal naar Bolts schuilplek!' },
     dogs: { scout: 3 },
-    hints: [[2.5, () => t('hintSlash', keyLabel('slash'))], [9, () => t('hintKeys', keyName(settings.keys.sprint[0]), keyName(settings.keys.jump[0]))], [16, () => t('hintMap', keyLabel('map'))]],
+    hints: [[2.5, () => touchScreen ? t('hintSlashTouch') : t('hintSlash', keyLabel('slash'))], [9, () => t('hintKeys', keyLabel('sprint').split(t('or'))[0], keyLabel('jump').split(t('or'))[0])], [16, () => t('hintMap', keyLabel('map'))]],
     // the story is told in the movie before the chapter: one group of lines for each shot
     story: [
       [['narr', { en: 'Neo-Paw City never sleeps. Neon lights, flying cars, and a grey tabby cat named Smoke napping on a warm rooftop.', nl: "Neo-Paw City slaapt nooit. Neon, vliegende auto's en een grijze cyperse kat, Smoke, die dut op een warm dak." }],
@@ -574,7 +651,9 @@ function keyName(code) {
     ControlLeft: 'Ctrl', ControlRight: t('keyCtrlR'), AltLeft: 'Alt', AltRight: t('keyAltR'), Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace' };
   return names[code] || code.replace(/^Key|^Digit|^Numpad/, '');
 }
-const keyLabel = action => settings.keys[action].map(keyName).join(t('or'));
+const touchScreen = matchMedia('(pointer: coarse)').matches;
+const TOUCH_ICON = { slash: '🐾', jump: '⤒', sprint: '⚡', map: '🗺️', pause: '⏸' };    // the touch buttons
+const keyLabel = action => touchScreen ? TOUCH_ICON[action] : settings.keys[action].map(keyName).join(t('or'));
 
 let actx = null, sfxGain = null, musicGain = null, noiseBuf = null;
 function tone(freq, dur, type = 'sine', vol = 0.12, slide = 1, delay = 0) {
@@ -2036,16 +2115,18 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-let dragging = false, lastX = 0, lastY = 0, lastDrag = -10;
+let dragging = null, lastX = 0, lastY = 0, lastDrag = -10;    // dragging: the finger or mouse turning the camera
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 renderer.domElement.addEventListener('pointerdown', e => {
-  dragging = true; lastX = e.clientX; lastY = e.clientY;
-  if (e.button === 0 && state === 'play' && performance.now() >= inputLockUntil) slash();
+  dragging = e.pointerId; lastX = e.clientX; lastY = e.clientY;
+  // a click slashes; on a touch screen the 🐾 button does, so a finger can turn the camera
+  if (e.button === 0 && e.pointerType !== 'touch' && state === 'play' && performance.now() >= inputLockUntil) slash();
   if (state === 'cutscene') advanceScene();
 });
-addEventListener('pointerup', () => { dragging = false; });
+addEventListener('pointerup', e => { if (e.pointerId === dragging) dragging = null; });
+addEventListener('pointercancel', e => { if (e.pointerId === dragging) dragging = null; });
 addEventListener('pointermove', e => {
-  if (!dragging) return;
+  if (e.pointerId !== dragging) return;
   camYaw -= (e.clientX - lastX) * 0.006;
   lastDrag = now;
   camPitch = clamp(camPitch + (e.clientY - lastY) * 0.004, 0.15, 1.2);
@@ -2100,7 +2181,7 @@ function hideOverlay() {
 }
 
 const kbd = action => `<kbd>${keyName(settings.keys[action][0])}</kbd>`;
-const CONTROLS = () => `<div class="keys">${t('controls', Object.fromEntries(ACTIONS.map(([id]) => [id, kbd(id)])))}</div>`;
+const CONTROLS = () => `<div class="keys">${touchScreen ? t('touchControls') : t('controls', Object.fromEntries(ACTIONS.map(([id]) => [id, kbd(id)])))}</div>`;
 const BESTIARY = () => `<div class="types">${t('bestiary')}</div>`;
 
 function showMenu() {
@@ -2245,6 +2326,47 @@ function showSettings() {
   card.querySelectorAll('button[data-key]').forEach(btn => {
     btn.onclick = () => { rebinding = rebinding === btn.dataset.key ? null : btn.dataset.key; showSettings(); };
   });
+}
+
+// ---- Touch controls: the stick and buttons press the same keys a keyboard would ----
+if (touchScreen) {
+  document.body.classList.add('touch');
+  const press = (code, down) => dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code }));
+  const keyOf = act => act === 'pause' ? 'Escape' : settings.keys[act][0];
+  for (const b of document.querySelectorAll('#touch button')) {
+    const up = () => press(keyOf(b.dataset.act), false);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(keyOf(b.dataset.act), true); });
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  }
+  // the stick appears under your thumb anywhere on the left, and steers in 8 directions
+  const zone = $('stickZone'), stick = $('stick'), knob = $('knob'), held = {};
+  let finger = null, sx = 0, sy = 0;
+  const steer = (act, on) => { if (!!held[act] !== on) { held[act] = on; press(settings.keys[act][0], on); } };
+  const release = e => {
+    if (e.pointerId !== finger) return;
+    finger = null;
+    for (const act of ['forward', 'back', 'left', 'right']) steer(act, false);
+    stick.classList.remove('on'); stick.style.left = stick.style.top = ''; knob.style.transform = '';
+  };
+  zone.addEventListener('pointerdown', e => {
+    if (finger !== null) return;
+    finger = e.pointerId; sx = e.clientX; sy = e.clientY;
+    zone.setPointerCapture(e.pointerId);
+    stick.classList.add('on'); stick.style.left = `${sx}px`; stick.style.top = `${sy}px`;
+  });
+  zone.addEventListener('pointermove', e => {
+    if (e.pointerId !== finger) return;
+    let dx = e.clientX - sx, dy = e.clientY - sy;
+    const d = Math.hypot(dx, dy), R = 50;
+    if (d > R) { dx *= R / d; dy *= R / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const on = d > 12, c = dx / (d || 1), s = dy / (d || 1);    // 0.38 = sin(22.5°): 8 slices
+    steer('right', on && c > 0.38); steer('left', on && c < -0.38);
+    steer('back', on && s > 0.38); steer('forward', on && s < -0.38);
+  });
+  zone.addEventListener('pointerup', release);
+  zone.addEventListener('pointercancel', release);
 }
 
 // ---- The big map ----
@@ -3928,8 +4050,9 @@ function victoryShot() {
 // =====================================================================
 // Main loop
 // =====================================================================
-const clock = new THREE.Clock();
+const clock = new THREE.Clock(), touchBox = $('touch');
 function frame() {
+  touchBox.classList.toggle('on', state === 'play');
   step(Math.min(clock.getDelta(), 0.05));
   requestAnimationFrame(frame);
 }
@@ -4025,6 +4148,11 @@ document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.data
 wearOutfit(shop.wearing);
 showMenu();
 frame();
+// done loading: fill the bar and fade the loading screen away
+window.gameReady = true;
+$('loadFill').style.width = '100%';
+$('loadText').textContent = '100%';
+setTimeout(() => { $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 500); }, 300);
 </script>
 </body>
 </html>
