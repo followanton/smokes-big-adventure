@@ -32,6 +32,7 @@
   #card button { font: inherit; font-size: 19px; font-weight: bold; color: #0d0b1e; background: #36e7ff; border: 0; border-radius: 12px; padding: 10px 26px; cursor: pointer; box-shadow: 0 0 14px rgba(54,231,255,.6); }
   #card button.alt { background: #2c2c5a; color: #e6f7ff; box-shadow: none; }
   #card button:hover { filter: brightness(1.15); }
+  #card input { font: inherit; font-size: 22px; text-align: center; color: #fff; background: #1d1d3f; border: 2px solid #36e7ff; border-radius: 12px; padding: 8px 12px; width: 100%; box-sizing: border-box; outline: none; }
   .types { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; text-align: left; font-size: 13px; margin: 10px 0; }
   .types div { background: #1d1d3f; border-radius: 8px; padding: 6px 8px; }
   #mapHint { position: fixed; top: 178px; right: 12px; width: 160px; text-align: center; color: #bff8ff; font-size: 12px; text-shadow: 0 1px 3px #000; pointer-events: none; }
@@ -231,6 +232,29 @@ const T = {
   continueAt: { en: n => `Continue: Chapter ${n}`, nl: n => `Verder: level ${n}` },
   outfits: { en: '🎩 Outfits', nl: '🎩 Outfits' },
   settings: { en: '⚙️ Settings', nl: '⚙️ Opties' },
+  player: { en: n => n ? `👤 ${n}` : '👤 Pick your name', nl: n => n ? `👤 ${n}` : '👤 Kies je naam' },
+  nameTitle: { en: 'Your player name', nl: 'Je spelnaam' },
+  nameHelp: { en: 'Friends find you by this name. Use 3 to 16 letters or numbers, and not your real name!', nl: 'Vrienden vinden je met deze naam. Gebruik 3 tot 16 letters of cijfers, en niet je echte naam!' },
+  nameSave: { en: 'Save', nl: 'Opslaan' },
+  nameChecking: { en: 'Checking...', nl: 'Even kijken...' },
+  nameTaken: { en: 'Someone already has that name. Try another!', nl: 'Deze naam is al bezet. Probeer een andere!' },
+  nameBad: { en: "That name isn't allowed.", nl: 'Die naam mag niet.' },
+  nameInvalid: { en: 'Use 3 to 16 letters, numbers or _', nl: 'Gebruik 3 tot 16 letters, cijfers of _' },
+  nameOffline: { en: 'No connection. Try again later.', nl: 'Geen verbinding. Probeer het later nog eens.' },
+  needName: { en: 'Pick your name first.', nl: 'Kies eerst je naam.' },
+  friends: { en: '👥 Friends', nl: '👥 Vrienden' },
+  friendName: { en: "Your friend's name", nl: 'Naam van je vriend' },
+  friendAdd: { en: 'Add', nl: 'Toevoegen' },
+  friendSent: { en: n => `Request sent to ${n}!`, nl: n => `Verzoek gestuurd naar ${n}!` },
+  friendNow: { en: n => `You and ${n} are friends now! 🎉`, nl: n => `Jij en ${n} zijn nu vrienden! 🎉` },
+  friendNotFound: { en: 'Nobody has that name.', nl: 'Niemand heet zo.' },
+  friendSelf: { en: "That's you! 😄", nl: 'Dat ben je zelf! 😄' },
+  friendTooMany: { en: 'You have lots of requests waiting. Wait for answers first.', nl: 'Je hebt al veel verzoeken openstaan. Wacht eerst op antwoord.' },
+  askedList: { en: 'Want to be your friend', nl: 'Wil je vriend worden' },
+  friendsList: { en: 'Your friends', nl: 'Je vrienden' },
+  sentList: { en: 'Waiting for an answer', nl: 'Wacht op antwoord' },
+  noFriends: { en: 'No friends yet. Add one!', nl: 'Nog geen vrienden. Voeg er een toe!' },
+  unfriendAsk: { en: n => `Remove ${n} as a friend?`, nl: n => `${n} weghalen als vriend?` },
   back: { en: 'Back', nl: 'Terug' },
   mainMenu: { en: 'Main menu', nl: 'Hoofdmenu' },
   touchControls: {
@@ -2084,6 +2108,7 @@ function resetCat() {
 const keys = {};
 const held = action => settings.keys[action].some(c => keys[c]);
 addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement && e.code !== 'Enter') return;    // typing a name
   if (rebinding) {                       // the settings screen is waiting for a new key
     e.preventDefault();
     if (e.code !== 'Escape') setKey(rebinding, e.code);
@@ -2105,6 +2130,7 @@ addEventListener('keydown', e => {
   if (state === 'map') { if (bound('map', e.code) || e.code === 'Escape' || bound('pause', e.code)) toggleMap(); return; }
   if (inSettings) { if (e.code === 'Escape') settingsBack(); return; }
   if (shopOpen) { if (e.code === 'Escape') closeShop(); return; }
+  if (friendsOpen) { if (e.code === 'Escape') closeFriends(); return; }
   if ((bound('pause', e.code) || e.code === 'Escape') && (state === 'play' || state === 'paused')) togglePause();
   if (state !== 'play') return;
   if (bound('map', e.code)) toggleMap();
@@ -2194,6 +2220,8 @@ function showMenu() {
   const saved = loadSave();
   const buttons = [{ text: t('newStory'), action: chooseMode }];
   if (saved > 0) buttons.push({ text: t('continueAt', saved + 1), alt: true, action: () => { hardcore = false; score = 0; playChapter(saved); } });
+  buttons.push({ text: t('player', player.name), alt: true, action: () => showName() });
+  buttons.push({ text: t('friends'), alt: true, action: openFriends });
   buttons.push({ text: t('outfits'), alt: true, action: openShop });
   buttons.push({ text: t('settings'), alt: true, action: () => openSettings(showMenu) });
   showOverlay(`
@@ -2326,6 +2354,88 @@ function showSettings() {
   card.querySelectorAll('button[data-key]').forEach(btn => {
     btn.onclick = () => { rebinding = rebinding === btn.dataset.key ? null : btn.dataset.key; showSettings(); };
   });
+}
+
+// ---- Player name: kept online, so no two players have the same name ----
+// The browser keeps a random secret that proves the name is yours; the server only stores its hash.
+const ONLINE = { url: 'https://oexrhihwepqevxgryycl.supabase.co', key: 'sb_publishable_QbB8xbOtI0ZuZwbVJ_sAtg_sdLYcLBU' };
+const player = (() => { try { return JSON.parse(localStorage.getItem('smoke-player')) || {}; } catch { return {}; } })();
+player.secret ||= Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+async function rpc(fn, args) {
+  const r = await fetch(`${ONLINE.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: ONLINE.key, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+  if (!r.ok) throw new Error(`${fn}: ${r.status}`);
+  return r.json();
+}
+function showName(msg = '') {
+  showOverlay(`<h2>${t('nameTitle')}</h2><p>${t('nameHelp')}</p>
+    <input id="nameIn" maxlength="16" autocomplete="off" spellcheck="false" value="${player.name || ''}">
+    <p id="nameMsg">${msg}</p>`, [{ text: t('nameSave'), action: saveName }, { text: t('back'), alt: true, action: showMenu }]);
+  $('nameIn').focus();
+}
+async function saveName() {
+  const name = $('nameIn').value.trim();
+  $('nameMsg').textContent = t('nameChecking');
+  let res;
+  try { res = await rpc('claim_name', { p_name: name, p_secret: player.secret }); } catch { res = 'offline'; }
+  if (res === 'ok') {
+    player.name = name;
+    try { localStorage.setItem('smoke-player', JSON.stringify(player)); } catch { /* storage blocked */ }
+    showMenu();
+  } else if ($('nameMsg')) $('nameMsg').textContent = t({ taken: 'nameTaken', bad: 'nameBad', invalid: 'nameInvalid' }[res] || 'nameOffline');
+}
+
+// ---- Friends: you ask, they say yes, and then you are friends ----
+let friendsOpen = false, friendsTimer = 0, friendsSeen = '';
+function openFriends() {
+  if (!player.name) return showName(t('needName'));
+  friendsOpen = true;
+  friendsSeen = '';
+  showFriends();
+}
+function closeFriends() {
+  friendsOpen = false;
+  clearTimeout(friendsTimer);
+  showMenu();
+}
+// draws the friends screen, and looks for news every 5 seconds while it is open
+async function showFriends(msg = '') {
+  clearTimeout(friendsTimer);
+  let list = null;
+  try { list = await rpc('my_friends', { p_secret: player.secret }); } catch { /* offline */ }
+  if (!friendsOpen) return;
+  friendsTimer = setTimeout(() => showFriends(), 5000);
+  const seen = JSON.stringify(list);
+  if (!msg && seen === friendsSeen && $('friendIn')) return;    // nothing new: don't disturb the typing
+  friendsSeen = seen;
+  const typed = $('friendIn')?.value || '', typing = document.activeElement?.id === 'friendIn';
+  const btn = (act, n, label, alt) => `<button data-${act}="${n}" class="${alt ? 'alt' : ''}">${label}</button>`;
+  const rows = (title, names, btns) => names.length ? `<h3>${title}</h3>` + names.map(n => `<div class="setRow"><span>${n}</span><span>${btns(n)}</span></div>`).join('') : '';
+  showOverlay(`<h2>${t('friends')}</h2>
+    <input id="friendIn" maxlength="16" autocomplete="off" spellcheck="false" placeholder="${t('friendName')}">
+    <p id="friendMsg"></p>`, [{ text: t('friendAdd'), action: () => addFriend($('friendIn').value.trim()) }, { text: t('back'), alt: true, action: closeFriends }]);
+  $('card').insertAdjacentHTML('beforeend', !list ? `<p>${t('nameOffline')}</p>`
+    : rows(t('askedList'), list.asked, n => btn('add', n, '✓') + ' ' + btn('remove', n, '✗', 1))
+    + (rows(t('friendsList'), list.friends, n => btn('unfriend', n, '✗', 1)) || `<h3>${t('friendsList')}</h3><p>${t('noFriends')}</p>`)
+    + rows(t('sentList'), list.sent, n => btn('remove', n, '✗', 1)));
+  $('friendIn').value = typed;
+  if (typing || !typed) $('friendIn').focus();
+  $('friendMsg').textContent = msg;
+  const card = $('card');
+  card.querySelectorAll('button[data-add]').forEach(b => { b.onclick = () => addFriend(b.dataset.add); });
+  card.querySelectorAll('button[data-remove]').forEach(b => { b.onclick = () => removeFriend(b.dataset.remove); });
+  card.querySelectorAll('button[data-unfriend]').forEach(b => { b.onclick = () => { if (confirm(t('unfriendAsk', b.dataset.unfriend))) removeFriend(b.dataset.unfriend); }; });
+}
+async function addFriend(name) {
+  if (!name) return;
+  let res;
+  try { res = await rpc('add_friend', { p_secret: player.secret, p_name: name }); } catch { res = 'offline'; }
+  if (!friendsOpen) return;
+  if (res === 'sent' || res === 'friends') $('friendIn').value = '';
+  showFriends(t({ sent: 'friendSent', friends: 'friendNow', notfound: 'friendNotFound', self: 'friendSelf', toomany: 'friendTooMany' }[res] || 'nameOffline', name));
+}
+async function removeFriend(name) {
+  try { await rpc('remove_friend', { p_secret: player.secret, p_name: name }); } catch { /* offline: the list shows it */ }
+  if (friendsOpen) showFriends(' ');
 }
 
 // ---- Touch controls: the stick and buttons press the same keys a keyboard would ----
@@ -4131,7 +4241,7 @@ window.smokeDebug = {
   get fishes() { return fishes; }, get bolts() { return bolts; }, get score() { return score; }, get crates() { return crates; },
   setCam(yaw, pitch, dist) { camYaw = yaw; camPitch = pitch; camDist = dist; },
   THREE, camera, get scene() { return scene; }, get buildings() { return buildings; }, get level() { return levelGroup; },
-  shop, wearOutfit, openShop,
+  shop, wearOutfit, openShop, player, rpc, openFriends, get overlayButtons() { return overlayButtons; },
   ui: { showMenu, chooseMode, openShop, closeShop, settings: () => openSettings(showMenu), showPause, failChapter, setHardcore: v => { hardcore = v; } },
   makeCat, makeBolt, makeDoge, makeRobotDog, animateBolt, TYPES, OUTFITS, T, CHAPTERS, ENDING, HIDEOUT, ACTIONS, get lang() { return lang; }, set lang(v) { lang = v; },     // for making pictures of the characters
   get gpu() { return { ...renderer.info.memory }; },
